@@ -18,16 +18,21 @@ pub struct Font<'a> {
 
 pub struct LoadedGlyph {
     pub image: Image,
+    pub advance_width: f32,
 }
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Swash couldn't render codepoint {0}")]
     CouldNotRender(u32),
+    #[error("Fontdb couldn't load font {0}")]
+    CouldNotLoadFont(String),
+    #[error("Fontdb couldn't parse font {0}")]
+    CouldNotParseFont(String),
 }
 
 impl<'a> Font<'a> {
-    pub fn new(inner: FontRef<'a>, point: f32) -> Self {
+    pub fn new(inner: FontRef<'a>) -> Self {
         Self {
             inner,
             charmap: inner.charmap(),
@@ -53,6 +58,10 @@ impl<'a> Font<'a> {
             .offset(Vector::new(0., 0.))
             .render(&mut scaler, id)
             .ok_or(Error::CouldNotRender(codepoint.into()))?;
-        Ok(LoadedGlyph { image })
+        let advance_width = self.inner.glyph_metrics(&[]).advance_width(id);
+        Ok(LoadedGlyph {
+            image,
+            advance_width,
+        })
     }
 }
