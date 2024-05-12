@@ -1,4 +1,5 @@
 mod font;
+mod gpu;
 mod preproc;
 
 use anyhow::Result;
