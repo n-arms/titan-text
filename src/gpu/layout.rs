@@ -121,7 +121,7 @@ impl Command for LayoutPass<'_> {
             });
             pass.set_bind_group(0, &bind_group, &[]);
             pass.set_pipeline(&pipeline);
-            pass.dispatch_workgroups(self.text.line_length, self.text.lines, 1);
+            pass.dispatch_workgroups(1, self.text.lines, 1);
         }
         commands.push(encoder.finish());
     }
