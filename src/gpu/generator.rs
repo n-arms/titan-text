@@ -8,6 +8,7 @@ use super::{
 };
 
 pub struct GenerationPass {
+    pub font_data: wgpu::Buffer,
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub bind_group_layout: wgpu::BindGroupLayout,
@@ -178,6 +179,7 @@ impl GenerationPass {
         });
 
         Self {
+            font_data,
             vertex_buffer,
             index_buffer,
             bind_group_layout,
@@ -190,9 +192,8 @@ impl GenerationPass {
 }
 
 impl Command for GenerationPass {
-    // step 1. create 2d buffer to store the starting position of each glyph
-    // step 2. run an inclusive prefix sum, taking `advance_width` from `glyph_data` as the elements to scan with
-    // step 3. pack it all into a compute shader
+    // step 1. generate the coordinates of the vertices of each of the two triangles of each glyph
+    // step 2. use an atomic bump allocator to put the vertices and indices into respective buffers
     fn push_buffers(&self, device: &wgpu::Device, commands: &mut CommandList) {
         let workgroups = (self.line_length / 64).max(1);
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
