@@ -39,6 +39,13 @@ pub struct Text {
     size: wgpu::Buffer,
     lines: u32,
     line_length: u32,
+    line_height: f32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct FontData {
+    line_height: f32,
 }
 
 #[repr(C)]

@@ -13,9 +13,9 @@ pub struct Line {
     pub glyphs: Vec<AtlasID>,
 }
 
-#[derive(Default)]
 pub struct Text {
     pub lines: Vec<Line>,
+    pub line_height: f32,
 }
 
 pub struct Preprocessor<'a> {
@@ -25,12 +25,21 @@ pub struct Preprocessor<'a> {
     point: f32,
 }
 
+impl Text {
+    pub fn new(line_height: f32) -> Self {
+        Self {
+            lines: Vec::new(),
+            line_height,
+        }
+    }
+}
+
 impl<'a> Preprocessor<'a> {
     pub fn new(font: Font<'a>, atlas: Atlas, point: f32) -> Self {
         Self {
+            text: Text::new(font.line_height(point)),
             font,
             atlas,
-            text: Text::default(),
             point,
         }
     }

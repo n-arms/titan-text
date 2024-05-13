@@ -63,4 +63,8 @@ impl<'a> Font<'a> {
             advance_width,
         })
     }
+
+    pub fn line_height(&self, point: f32) -> f32 {
+        self.inner.metrics(&[]).scale(point).leading
+    }
 }

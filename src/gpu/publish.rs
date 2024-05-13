@@ -125,5 +125,6 @@ pub fn publish_text(text: &preproc::Text, device: &wgpu::Device, queue: &wgpu::Q
         size: size_buffer,
         lines: text.lines.len() as u32,
         line_length,
+        line_height: text.line_height,
     }
 }

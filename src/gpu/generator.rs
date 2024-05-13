@@ -1,10 +1,10 @@
 use std::{mem::size_of, num::NonZeroU64};
 
-use wgpu::include_wgsl;
+use wgpu::{include_wgsl, util::DeviceExt};
 
 use super::{
     command::{Command, CommandList},
-    GpuGlyphData, LineSize, Text, Vertex,
+    FontData, GpuGlyphData, LineSize, Text, Vertex,
 };
 
 pub struct GenerationPass {
@@ -80,7 +80,7 @@ impl GenerationPass {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         has_dynamic_offset: false,
                         min_binding_size: Some(
-                            NonZeroU64::new(size_of::<Vertex>() as u64).unwrap(),
+                            NonZeroU64::new(size_of::<FontData>() as u64).unwrap(),
                         ),
                     },
                     count: None,
@@ -97,7 +97,25 @@ impl GenerationPass {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: Some(NonZeroU64::new(size_of::<u32>() as u64).unwrap()),
+                    },
+                    count: None,
+                },
             ],
+        });
+        let font_data = FontData {
+            line_height: text.line_height,
+        };
+        let font_data = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Font Data"),
+            contents: bytemuck::cast_slice(&[font_data]),
+            usage: wgpu::BufferUsages::STORAGE,
         });
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
@@ -133,10 +151,14 @@ impl GenerationPass {
                 },
                 wgpu::BindGroupEntry {
                     binding: 4,
-                    resource: vertex_buffer.as_entire_binding(),
+                    resource: font_data.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 5,
+                    resource: vertex_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
                     resource: index_buffer.as_entire_binding(),
                 },
             ],
