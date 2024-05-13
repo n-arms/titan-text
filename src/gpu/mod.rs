@@ -1,4 +1,5 @@
 mod command;
+mod generator;
 mod layout;
 mod publish;
 
@@ -38,4 +39,13 @@ pub struct Text {
     size: wgpu::Buffer,
     lines: u32,
     line_length: u32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Vertex {
+    x: f32,
+    y: f32,
+    texture_x: f32,
+    texture_y: f32,
 }
