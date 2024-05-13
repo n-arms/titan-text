@@ -15,10 +15,17 @@ pub struct Atlas {
 }
 
 pub struct AtlasGlyph {
-    id: AtlasID,
-    glyph: LoadedGlyph,
-    x: u32,
-    y: u32,
+    pub id: AtlasID,
+    pub glyph: LoadedGlyph,
+    pub x: u32,
+    pub y: u32,
+}
+
+#[derive(Copy, Clone)]
+pub struct AtlasView<'a> {
+    pub entries: &'a HashMap<u32, AtlasGlyph>,
+    pub width: u32,
+    pub height: u32,
 }
 
 impl Atlas {
@@ -56,5 +63,13 @@ impl Atlas {
     pub fn get_glyph_id(&self, codepoint: impl Into<u32>) -> Option<AtlasID> {
         let glyph = self.entries.get(&codepoint.into())?;
         Some(glyph.id)
+    }
+
+    pub fn as_atlas_view(&self) -> AtlasView {
+        AtlasView {
+            entries: &self.entries,
+            width: self.width,
+            height: self.height,
+        }
     }
 }

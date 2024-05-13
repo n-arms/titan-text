@@ -1,5 +1,5 @@
 pub trait Command {
-    fn push_buffers(&self, commands: &mut CommandList);
+    fn push_buffers(&self, device: &wgpu::Device, commands: &mut CommandList);
 }
 
 #[derive(Default)]

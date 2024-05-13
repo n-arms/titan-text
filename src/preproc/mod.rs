@@ -6,7 +6,7 @@ use anyhow::Result;
 mod atlas;
 mod text;
 
-pub use atlas::Atlas;
+pub use atlas::{Atlas, AtlasView};
 
 #[derive(Default)]
 pub struct Line {

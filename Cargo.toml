@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.83"
+bytemuck = "1.15.0"
 fontdb = "0.17.0"
 lazy_static = "1.4.0"
 swash = "0.1.15"
