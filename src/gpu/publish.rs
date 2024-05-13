@@ -1,8 +1,10 @@
 use std::mem::size_of;
 
-use crate::preproc::AtlasView;
+use wgpu::util::DeviceExt;
 
-use super::GpuGlyphData;
+use crate::preproc::{self, AtlasView};
+
+use super::{GpuGlyphData, LineSize, Text};
 pub fn create_atlas_texture(atlas: AtlasView, device: &wgpu::Device) -> wgpu::Texture {
     let size = wgpu::Extent3d {
         width: atlas.width,
@@ -83,4 +85,45 @@ pub fn write_atlas_buffer(atlas: AtlasView, buffer: &wgpu::Buffer, queue: &wgpu:
         data[glyph.id as usize] = glyph_data;
     }
     queue.write_buffer(&buffer, 0, bytemuck::cast_slice(&data));
+}
+
+pub fn publish_text(text: &preproc::Text, device: &wgpu::Device, queue: &wgpu::Queue) -> Text {
+    let mut line_length = 0;
+    let size_data: Vec<_> = text
+        .lines
+        .iter()
+        .map(|line| line.glyphs.len() as u32)
+        .scan(0, |state, length| {
+            line_length = line_length.max(length);
+            let start = *state;
+            *state += length;
+            Some(LineSize { start, length })
+        })
+        .collect();
+
+    let text_data: Vec<_> = text
+        .lines
+        .iter()
+        .flat_map(|line| &line.glyphs)
+        .copied()
+        .collect();
+
+    let size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Size Buffer"),
+        contents: bytemuck::cast_slice(&size_data),
+        usage: wgpu::BufferUsages::STORAGE,
+    });
+
+    let text_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Text Buffer"),
+        contents: bytemuck::cast_slice(&text_data),
+        usage: wgpu::BufferUsages::STORAGE,
+    });
+
+    Text {
+        text: text_buffer,
+        size: size_buffer,
+        lines: text.lines.len() as u32,
+        line_length,
+    }
 }

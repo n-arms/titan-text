@@ -10,12 +10,12 @@ pub use atlas::{Atlas, AtlasView};
 
 #[derive(Default)]
 pub struct Line {
-    glyphs: Vec<AtlasID>,
+    pub glyphs: Vec<AtlasID>,
 }
 
 #[derive(Default)]
 pub struct Text {
-    lines: Vec<Line>,
+    pub lines: Vec<Line>,
 }
 
 pub struct Preprocessor<'a> {
