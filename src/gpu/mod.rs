@@ -2,6 +2,7 @@ mod command;
 mod generator;
 mod layout;
 mod publish;
+mod render;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]

@@ -9,6 +9,7 @@ use super::{
 
 pub struct GenerationPass {
     pub font_data: wgpu::Buffer,
+    pub num_indices: wgpu::Buffer,
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub bind_group_layout: wgpu::BindGroupLayout,
@@ -26,7 +27,7 @@ impl GenerationPass {
         layout_buffer: &wgpu::Buffer,
     ) -> Self {
         let visibility = wgpu::ShaderStages::COMPUTE;
-        // text, size, glyph data, layout, vertex, index
+        // text, size, glyph data, layout, font data, vertex, index, num indices
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Generation Pass Bind Group Layout"),
             entries: &[
@@ -108,6 +109,16 @@ impl GenerationPass {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: Some(NonZeroU64::new(size_of::<u32>() as u64).unwrap()),
+                    },
+                    count: None,
+                },
             ],
         });
         let font_data = FontData {
@@ -128,6 +139,12 @@ impl GenerationPass {
             label: Some("Index Buffer"),
             size: (4 * text.lines * text.line_length) as wgpu::BufferAddress,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let num_indices_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Num Indices Buffer"),
+            size: size_of::<u32>() as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -162,6 +179,10 @@ impl GenerationPass {
                     binding: 6,
                     resource: index_buffer.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: num_indices_buffer.as_entire_binding(),
+                },
             ],
         });
         let shader_module = device.create_shader_module(include_wgsl!("shaders/generator.wgsl"));
@@ -187,7 +208,20 @@ impl GenerationPass {
             pipeline,
             lines: text.lines,
             line_length: text.line_length,
+            num_indices: num_indices_buffer,
         }
+    }
+    pub async fn get_num_indices(&self, device: &wgpu::Device) -> u32 {
+        let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
+        let buffer_slice = self.num_indices.slice(..);
+        buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+            tx.send(result).unwrap();
+        });
+        device.poll(wgpu::Maintain::Wait);
+        rx.receive().await.unwrap().unwrap();
+        let data = buffer_slice.get_mapped_range();
+
+        u32::from_ne_bytes((*data).try_into().unwrap())
     }
 }
 

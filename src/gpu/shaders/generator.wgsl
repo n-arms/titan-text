@@ -50,6 +50,10 @@ var<storage, read_write> vertex: array<Vertex>;
 @binding(6)
 var<storage, read_write> index: array<u32>;
 
+@group(0)
+@binding(7)
+var<storage, read_write> num_indices: u32;
+
 var next_vertex: atomic<u32> = 0;
 var next_index: atomic<u32> = 0;
 
@@ -106,4 +110,6 @@ fn main(
     index[second] = b;
     index[second + 1] = c;
     index[second + 2] = d;
+
+    num_indices = atomicLoad(&next_index);
 }
