@@ -1,4 +1,4 @@
-use std::{mem::size_of, num::NonZeroU64};
+use std::{iter, mem::size_of, num::NonZeroU64};
 
 use wgpu::{include_wgsl, util::DeviceExt};
 
@@ -6,6 +6,13 @@ use super::{
     command::{Command, CommandList},
     FontData, GpuGlyphData, LineSize, Text, Vertex,
 };
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+struct IndexData {
+    vertices: u32,
+    indices: u32,
+}
 
 pub struct GenerationPass {
     pub font_data: wgpu::Buffer,
@@ -17,6 +24,7 @@ pub struct GenerationPass {
     pub pipeline: wgpu::ComputePipeline,
     pub lines: u32,
     pub line_length: u32,
+    pub num_indices_reader: wgpu::Buffer,
 }
 
 impl GenerationPass {
@@ -37,7 +45,7 @@ impl GenerationPass {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         has_dynamic_offset: false,
-                        min_binding_size: Some(NonZeroU64::new(size_of::<u16>() as u64).unwrap()),
+                        min_binding_size: Some(NonZeroU64::new(size_of::<u32>() as u64).unwrap()),
                     },
                     count: None,
                 },
@@ -115,7 +123,9 @@ impl GenerationPass {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         has_dynamic_offset: false,
-                        min_binding_size: Some(NonZeroU64::new(size_of::<u32>() as u64).unwrap()),
+                        min_binding_size: Some(
+                            NonZeroU64::new(size_of::<IndexData>() as u64).unwrap(),
+                        ),
                     },
                     count: None,
                 },
@@ -143,8 +153,14 @@ impl GenerationPass {
         });
         let num_indices_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Num Indices Buffer"),
-            size: size_of::<u32>() as wgpu::BufferAddress,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ,
+            size: size_of::<IndexData>() as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let num_indices_reader_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Num Indices Reader Buffer"),
+            size: num_indices_buffer.size(),
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -209,11 +225,23 @@ impl GenerationPass {
             lines: text.lines,
             line_length: text.line_length,
             num_indices: num_indices_buffer,
+            num_indices_reader: num_indices_reader_buffer,
         }
     }
-    pub async fn get_num_indices(&self, device: &wgpu::Device) -> u32 {
+    pub async fn get_num_indices(&self, device: &wgpu::Device, queue: &wgpu::Queue) -> u32 {
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Get Num Indices Encoder"),
+        });
+        encoder.copy_buffer_to_buffer(
+            &self.num_indices,
+            0,
+            &self.num_indices_reader,
+            0,
+            self.num_indices.size(),
+        );
+        queue.submit(iter::once(encoder.finish()));
         let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
-        let buffer_slice = self.num_indices.slice(..);
+        let buffer_slice = self.num_indices_reader.slice(..);
         buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
             tx.send(result).unwrap();
         });
@@ -221,7 +249,9 @@ impl GenerationPass {
         rx.receive().await.unwrap().unwrap();
         let data = buffer_slice.get_mapped_range();
 
-        u32::from_ne_bytes((*data).try_into().unwrap())
+        let index_data: &[IndexData] = bytemuck::cast_slice(&*data);
+
+        index_data[0].indices
     }
 }
 

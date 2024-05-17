@@ -15,7 +15,7 @@ struct GlyphData {
 
 @group(0)
 @binding(0)
-var<storage, read_write> text: array<u16>;
+var<storage, read_write> text: array<u32>;
 
 @group(0)
 @binding(1)
@@ -27,16 +27,16 @@ var<storage, read_write> glyph_data: array<GlyphData>;
 
 @group(0)
 @binding(3)
-var<storage, read_write> layout: array<f32>;
+var<storage, read_write> layout_offset: array<f32>;
 
 const wgsize: u32 = 4;
 const n: u32 = wgsize * 2;
 
-var<workgroup> shared_data: array<f32, wgsize>;
+var<workgroup> shared_data: array<f32, n>;
 
 fn glyph(id: u32) -> f32 {
     let data_id = text[id];
-    return glyph_data[u32(data_id)];
+    return glyph_data[u32(data_id)].advance_x;
 }
 
 @compute
@@ -48,7 +48,7 @@ fn main(
     let lineSize = size[workgroup_id.y];
     let start = lineSize.start;
     let tid = local_id.x;
-    let offset: u32 = 1;
+    var offset: u32 = 1u;
     shared_data[2*tid] = glyph(start + 2*tid);
     shared_data[2*tid + 1] = glyph(start + 2*tid + 1);
 
@@ -80,6 +80,6 @@ fn main(
 
     workgroupBarrier();
 
-    layout[start + 2*tid] = shared_data[2*tid];
-    layout[start + 2*tid + 1] = shared_data[2*tid + 1];
+    layout_offset[start + 2*tid] = shared_data[2*tid];
+    layout_offset[start + 2*tid + 1] = shared_data[2*tid + 1];
 }

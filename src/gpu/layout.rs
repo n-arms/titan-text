@@ -28,7 +28,7 @@ impl LayoutPass {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         has_dynamic_offset: false,
-                        min_binding_size: Some(NonZeroU64::new(size_of::<u16>() as u64).unwrap()),
+                        min_binding_size: Some(NonZeroU64::new(size_of::<u32>() as u64).unwrap()),
                     },
                     count: None,
                 },

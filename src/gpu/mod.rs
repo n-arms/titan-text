@@ -1,8 +1,8 @@
-mod command;
-mod generator;
-mod layout;
-mod publish;
-mod render;
+pub mod command;
+pub mod generator;
+pub mod layout;
+pub mod publish;
+pub mod render;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]

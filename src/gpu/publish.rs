@@ -63,6 +63,7 @@ pub fn create_atlas_buffer(atlas: AtlasView, device: &wgpu::Device) -> wgpu::Buf
         size,
         usage: wgpu::BufferUsages::STORAGE
             | wgpu::BufferUsages::COPY_SRC
+            | wgpu::BufferUsages::COPY_DST
             | wgpu::BufferUsages::UNIFORM,
         mapped_at_creation: false,
     };

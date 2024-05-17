@@ -5,11 +5,11 @@ use super::{
     Vertex,
 };
 
-pub struct RenderPass<'a, 'g, 's, 'w> {
-    pub surface: &'s wgpu::Surface<'w>,
+pub struct RenderPass<'a, 'g, 's> {
+    pub surface: &'s wgpu::Texture,
     pub vertex_buffer: &'g wgpu::Buffer,
     pub index_buffer: &'g wgpu::Buffer,
-    pub atlas_texture: &'a wgpu::Buffer,
+    pub atlas_texture: &'a wgpu::Texture,
     pub render_pipeline: wgpu::RenderPipeline,
     pub num_indices: u32,
 }
@@ -17,13 +17,13 @@ pub struct RenderPass<'a, 'g, 's, 'w> {
 const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 2] =
     wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2];
 
-impl<'a, 'g, 's, 'w> RenderPass<'a, 'g, 's, 'w> {
+impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
     pub fn new(
         device: &wgpu::Device,
-        surface: &'s wgpu::Surface<'w>,
+        surface: &'s wgpu::Texture,
         vertex_buffer: &'g wgpu::Buffer,
         index_buffer: &'g wgpu::Buffer,
-        atlas_texture: &'a wgpu::Buffer,
+        atlas_texture: &'a wgpu::Texture,
         num_indices: u32,
     ) -> Self {
         let visibility = wgpu::ShaderStages::VERTEX;
@@ -120,9 +120,8 @@ impl<'a, 'g, 's, 'w> RenderPass<'a, 'g, 's, 'w> {
         }
     }
     pub fn render(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let output = self.surface.get_current_texture().unwrap();
-        let view = output
-            .texture
+        let view = self
+            .surface
             .create_view(&wgpu::TextureViewDescriptor::default());
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Pass Encoder"),

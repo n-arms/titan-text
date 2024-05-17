@@ -19,10 +19,10 @@ pub struct Text {
 }
 
 pub struct Preprocessor<'a> {
-    font: Font<'a>,
-    atlas: Atlas,
-    text: Text,
-    point: f32,
+    pub font: Font<'a>,
+    pub atlas: Atlas,
+    pub text: Text,
+    pub point: f32,
 }
 
 impl Text {
