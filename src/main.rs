@@ -153,6 +153,6 @@ async fn save_output_texture(
         let data = buffer_slice.get_mapped_range();
 
         let image = RgbaImage::from_raw(256, 256, (&*data).to_owned()).unwrap();
-        image.save("image.png").unwrap();
+        image.save(file).unwrap();
     }
 }
