@@ -142,13 +142,17 @@ impl GenerationPass {
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: (4 * text.lines * text.line_length) as wgpu::BufferAddress,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::VERTEX,
             mapped_at_creation: false,
         });
         let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Index Buffer"),
             size: (4 * text.lines * text.line_length) as wgpu::BufferAddress,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::INDEX,
             mapped_at_creation: false,
         });
         let num_indices_buffer = device.create_buffer(&wgpu::BufferDescriptor {
