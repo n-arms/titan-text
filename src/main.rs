@@ -33,7 +33,7 @@ async fn run() -> Result<()> {
     let font = loader.load_font(&query)?;
     let atlas = preproc::Atlas::new(1024, 1024);
     let mut proc = preproc::Preprocessor::new(font, atlas, 12.);
-    proc.add_str("Hello World!")?;
+    proc.add_str("i")?;
 
     let (device, queue) = load_gpu().await?;
     let atlas_texture = create_atlas_texture(proc.atlas.as_atlas_view(), &device);
@@ -72,6 +72,11 @@ async fn run() -> Result<()> {
 
     save_output_texture(&render_output, &device, &queue, "output.png").await;
 
+    let debug = make_debug_buffer(&device);
+    let data = load_buffer(&layout_pass.layout_buffer, &device, &queue, &debug).await;
+    let layouts: &[f32] = bytemuck::cast_slice(&data);
+    dbg!(layouts);
+
     Ok(())
 }
 
@@ -108,6 +113,40 @@ fn make_output_texture(device: &wgpu::Device) -> wgpu::Texture {
         view_formats: &[],
     };
     device.create_texture(&desc)
+}
+
+async fn load_buffer(
+    buffer: &wgpu::Buffer,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    debug_buffer: &wgpu::Buffer,
+) -> Vec<u8> {
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("Get Num Indices Encoder"),
+    });
+    encoder.copy_buffer_to_buffer(&buffer, 0, &debug_buffer, 0, buffer.size());
+    queue.submit(iter::once(encoder.finish()));
+    let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
+    let buffer_slice = debug_buffer.slice(..);
+    buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+        tx.send(result).unwrap();
+    });
+    device.poll(wgpu::Maintain::Wait);
+    rx.receive().await.unwrap().unwrap();
+    let data = buffer_slice.get_mapped_range();
+    data.into_iter()
+        .copied()
+        .take(buffer.size() as usize)
+        .collect()
+}
+
+fn make_debug_buffer(device: &wgpu::Device) -> wgpu::Buffer {
+    device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("Debug Buffer"),
+        size: 1024 * 1024,
+        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    })
 }
 
 async fn save_output_texture(
