@@ -151,6 +151,7 @@ impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
             pass.set_pipeline(&self.render_pipeline);
             pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+            println!("calculated num indicies to be {}", self.num_indices);
             pass.draw_indexed(0..self.num_indices, 0, 0..1);
         }
         queue.submit(iter::once(encoder.finish()));

@@ -57,6 +57,8 @@ async fn run() -> Result<()> {
 
     let render_output = make_output_texture(&device);
 
+    dbg!(generate_pass.index_buffer.size());
+
     let render_pass = RenderPass::new(
         &device,
         &render_output,

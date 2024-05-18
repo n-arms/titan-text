@@ -141,7 +141,9 @@ impl GenerationPass {
         });
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
-            size: (4 * text.lines * text.line_length) as wgpu::BufferAddress,
+            size: (4 * text.lines * text.line_length * size_of::<Vertex>() as u32)
+                as wgpu::BufferAddress
+                * 1024,
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_SRC
                 | wgpu::BufferUsages::VERTEX,
@@ -149,7 +151,9 @@ impl GenerationPass {
         });
         let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Index Buffer"),
-            size: (4 * text.lines * text.line_length) as wgpu::BufferAddress,
+            size: (6 * text.lines * text.line_length * size_of::<u32>() as u32)
+                as wgpu::BufferAddress
+                * 1024,
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_SRC
                 | wgpu::BufferUsages::INDEX,
