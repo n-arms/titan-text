@@ -77,23 +77,18 @@ fn main(
     if (local_id.x >= line_size.length) {
         return;
     }
-    let preceeding_lines = workgroup_id.y;
+
     let start = line_size.start;
-    let text_index = start + local_id.x;
-    let glyph_index = text[text_index];
-    let glyph = glyph_data[glyph_index];
-    let layout_offset_offset = layout_offset[text_index];
+    let text_id = start + local_id.x;
+    let glyph_id = text[text_id];
+    let glyph = glyph_data[glyph_id];
 
-    let top = f32(preceeding_lines + 1) * font_data.line_height - f32(glyph.top);
-    let bottom = top + f32(glyph.height);
+    let offset = layout_offset[text_id];
 
-    let left = layout_offset_offset + f32(glyph.left);
-    let right = left + f32(glyph.width);
-
-    let a = vec2<f32>(top, left);
-    let b = vec2<f32>(top, right);
-    let c = vec2<f32>(bottom, left);
-    let d = vec2<f32>(bottom, right);
+    let a = vec2<f32>(offset, 10);
+    let b = vec2<f32>(offset + 5, 10);
+    let c = vec2<f32>(offset, 15);
+    let d = vec2<f32>(offset + 5, 15);
 
     let a_t = vec2<f32>(f32(glyph.texture_x), f32(glyph.texture_y));
     let b_t = vec2<f32>(f32(glyph.texture_x), f32(glyph.texture_y) + f32(glyph.width));

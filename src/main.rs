@@ -34,7 +34,6 @@ mod font;
 mod gpu;
 mod preproc;
 
-use core::fmt;
 use std::{iter, mem::size_of, path::Path};
 
 use anyhow::Result;
@@ -55,6 +54,8 @@ use crate::gpu::{GpuGlyphData, LineSize, Vertex};
 fn main() -> Result<()> {
     pollster::block_on(run())
 }
+
+const SIZE: u32 = 64;
 
 async fn run() -> Result<()> {
     let mut buf = Vec::new();
@@ -145,8 +146,8 @@ fn make_output_texture(device: &wgpu::Device) -> wgpu::Texture {
     let desc = wgpu::TextureDescriptor {
         label: Some("Output Texture"),
         size: wgpu::Extent3d {
-            width: 256,
-            height: 256,
+            width: SIZE,
+            height: SIZE,
             depth_or_array_layers: 1,
         },
         mip_level_count: 1,
@@ -205,7 +206,7 @@ async fn save_output_texture(
     queue: &wgpu::Queue,
     file: impl AsRef<Path>,
 ) {
-    let buffer_size = (size_of::<u32>() * 256 * 256) as wgpu::BufferAddress;
+    let buffer_size = (size_of::<u32>() as u32 * SIZE * SIZE) as wgpu::BufferAddress;
     let buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Output Buffer"),
         size: buffer_size,
@@ -226,8 +227,8 @@ async fn save_output_texture(
             buffer: &buffer,
             layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some((size_of::<u32>() * 256) as u32),
-                rows_per_image: Some(256),
+                bytes_per_row: Some((size_of::<u32>() as u32 * SIZE) as u32),
+                rows_per_image: Some(SIZE),
             },
         },
         texture.size(),
@@ -243,7 +244,7 @@ async fn save_output_texture(
 
         let data = buffer_slice.get_mapped_range();
 
-        let image = RgbaImage::from_raw(256, 256, (&*data).to_owned()).unwrap();
+        let image = RgbaImage::from_raw(SIZE, SIZE, (&*data).to_owned()).unwrap();
         image.save(file).unwrap();
     }
 }
