@@ -74,6 +74,9 @@ fn main(
     @builtin(workgroup_id) workgroup_id: vec3<u32>
 ) {
     let line_size = size[workgroup_id.y];
+    if (local_id.x >= line_size.length) {
+        return;
+    }
     let preceeding_lines = workgroup_id.y;
     let start = line_size.start;
     let text_index = start + local_id.x;

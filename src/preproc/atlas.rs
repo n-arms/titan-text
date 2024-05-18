@@ -14,6 +14,7 @@ pub struct Atlas {
     glyph_height: u32,
 }
 
+#[derive(Debug)]
 pub struct AtlasGlyph {
     pub id: AtlasID,
     pub glyph: LoadedGlyph,
@@ -21,7 +22,7 @@ pub struct AtlasGlyph {
     pub y: u32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AtlasView<'a> {
     pub entries: &'a HashMap<u32, AtlasGlyph>,
     pub width: u32,

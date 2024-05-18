@@ -102,23 +102,24 @@ pub fn publish_text(text: &preproc::Text, device: &wgpu::Device, queue: &wgpu::Q
         })
         .collect();
 
-    let text_data: Vec<_> = text
+    let text_data: Vec<u32> = text
         .lines
         .iter()
         .flat_map(|line| &line.glyphs)
         .copied()
+        .map(Into::into)
         .collect();
 
     let size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Size Buffer"),
         contents: bytemuck::cast_slice(&size_data),
-        usage: wgpu::BufferUsages::STORAGE,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
     });
 
     let text_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Text Buffer"),
         contents: bytemuck::cast_slice(&text_data),
-        usage: wgpu::BufferUsages::STORAGE,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
     });
 
     Text {

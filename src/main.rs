@@ -1,7 +1,40 @@
+macro_rules! dbg_s {
+    ($elems:expr) => {
+        print!(
+            "[{}:{}:{}] {} =",
+            file!(),
+            line!(),
+            column!(),
+            stringify!($elems)
+        );
+        for elem in $elems {
+            print!(" {:?}", elem)
+        }
+        println!("");
+    };
+}
+
+macro_rules! dbg_m {
+    ($elems:expr) => {
+        println!(
+            "[{}:{}:{}] {} = {{",
+            file!(),
+            line!(),
+            column!(),
+            stringify!($elems)
+        );
+        for elem in $elems {
+            println!("\t{:?}", elem)
+        }
+        println!("}}");
+    };
+}
+
 mod font;
 mod gpu;
 mod preproc;
 
+use core::fmt;
 use std::{iter, mem::size_of, path::Path};
 
 use anyhow::Result;
@@ -16,6 +49,8 @@ use gpu::{
     render::RenderPass,
 };
 use image::RgbaImage;
+
+use crate::gpu::{GpuGlyphData, LineSize, Vertex};
 
 fn main() -> Result<()> {
     pollster::block_on(run())
@@ -33,7 +68,8 @@ async fn run() -> Result<()> {
     let font = loader.load_font(&query)?;
     let atlas = preproc::Atlas::new(1024, 1024);
     let mut proc = preproc::Preprocessor::new(font, atlas, 12.);
-    proc.add_str("i")?;
+    proc.add_str("hi")?;
+    dbg!(proc.atlas.as_atlas_view());
 
     let (device, queue) = load_gpu().await?;
     let atlas_texture = create_atlas_texture(proc.atlas.as_atlas_view(), &device);
@@ -41,6 +77,8 @@ async fn run() -> Result<()> {
     let glyph_data_buffer = create_atlas_buffer(proc.atlas.as_atlas_view(), &device);
     write_atlas_buffer(proc.atlas.as_atlas_view(), &glyph_data_buffer, &queue);
     let text = publish_text(&proc.text, &device, &queue);
+
+    queue.submit([]);
 
     let layout_pass = LayoutPass::new(&device, &text, &glyph_data_buffer);
     let generate_pass = GenerationPass::new(
@@ -73,9 +111,15 @@ async fn run() -> Result<()> {
     save_output_texture(&render_output, &device, &queue, "output.png").await;
 
     let debug = make_debug_buffer(&device);
-    let data = load_buffer(&layout_pass.layout_buffer, &device, &queue, &debug).await;
-    let layouts: &[f32] = bytemuck::cast_slice(&data);
-    dbg!(layouts);
+    dbg!(proc.text);
+    dbg_s!(load_buffer_of::<u32>(&text.text, &device, &queue, &debug, 5).await);
+    dbg_m!(load_buffer_of::<LineSize>(&text.size, &device, &queue, &debug, 5).await);
+    dbg_s!(load_buffer_of::<f32>(&layout_pass.layout_buffer, &device, &queue, &debug, 5).await);
+    dbg_m!(load_buffer_of::<GpuGlyphData>(&glyph_data_buffer, &device, &queue, &debug, 5).await);
+    dbg_m!(
+        load_buffer_of::<Vertex>(&generate_pass.vertex_buffer, &device, &queue, &debug, 9).await
+    );
+    dbg_s!(load_buffer_of::<u32>(&generate_pass.index_buffer, &device, &queue, &debug, 15).await);
 
     Ok(())
 }
@@ -115,29 +159,35 @@ fn make_output_texture(device: &wgpu::Device) -> wgpu::Texture {
     device.create_texture(&desc)
 }
 
-async fn load_buffer(
+async fn load_buffer_of<T: bytemuck::Pod>(
     buffer: &wgpu::Buffer,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     debug_buffer: &wgpu::Buffer,
-) -> Vec<u8> {
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("Get Num Indices Encoder"),
-    });
-    encoder.copy_buffer_to_buffer(&buffer, 0, &debug_buffer, 0, buffer.size());
-    queue.submit(iter::once(encoder.finish()));
-    let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
-    let buffer_slice = debug_buffer.slice(..);
-    buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
-        tx.send(result).unwrap();
-    });
-    device.poll(wgpu::Maintain::Wait);
-    rx.receive().await.unwrap().unwrap();
-    let data = buffer_slice.get_mapped_range();
-    data.into_iter()
-        .copied()
-        .take(buffer.size() as usize)
-        .collect()
+    elements: usize,
+) -> Vec<T> {
+    let bytes: Vec<_> = {
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Get Num Indices Encoder"),
+        });
+        encoder.copy_buffer_to_buffer(&buffer, 0, &debug_buffer, 0, buffer.size());
+        queue.submit(iter::once(encoder.finish()));
+        let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
+        let buffer_slice = debug_buffer.slice(..);
+        buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+            tx.send(result).unwrap();
+        });
+        device.poll(wgpu::Maintain::Wait);
+        rx.receive().await.unwrap().unwrap();
+        let data = buffer_slice.get_mapped_range();
+        data.into_iter()
+            .copied()
+            .take(elements * size_of::<T>())
+            .collect()
+    };
+    debug_buffer.unmap();
+    let data = bytemuck::cast_slice(&bytes);
+    data.to_vec()
 }
 
 fn make_debug_buffer(device: &wgpu::Device) -> wgpu::Buffer {

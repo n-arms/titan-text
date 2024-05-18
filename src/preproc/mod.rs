@@ -8,11 +8,12 @@ mod text;
 
 pub use atlas::{Atlas, AtlasView};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Line {
     pub glyphs: Vec<AtlasID>,
 }
 
+#[derive(Debug)]
 pub struct Text {
     pub lines: Vec<Line>,
     pub line_height: f32,

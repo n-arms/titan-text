@@ -34,10 +34,10 @@ pub struct LineSize {
 
 // TODO: implement more fine grained line length systems
 pub struct Text {
-    /// a buffer of u16 values pointing into the glyph data buffer
-    text: wgpu::Buffer,
+    /// a buffer of u32 values pointing into the glyph data buffer
+    pub text: wgpu::Buffer,
     /// a buffer of LineSize's
-    size: wgpu::Buffer,
+    pub size: wgpu::Buffer,
     lines: u32,
     line_length: u32,
     line_height: f32,

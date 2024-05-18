@@ -1,3 +1,4 @@
+use core::fmt;
 use std::cell::OnceCell;
 
 use anyhow::Result;
@@ -57,7 +58,7 @@ impl<'a> Font<'a> {
             .offset(Vector::new(0., 0.))
             .render(&mut scaler, id)
             .ok_or(Error::CouldNotRender(codepoint))?;
-        let advance_width = self.inner.glyph_metrics(&[]).advance_width(id);
+        let advance_width = self.inner.glyph_metrics(&[]).scale(point).advance_width(id);
         Ok(LoadedGlyph {
             image,
             advance_width,
@@ -66,5 +67,13 @@ impl<'a> Font<'a> {
 
     pub fn line_height(&self, point: f32) -> f32 {
         self.inner.metrics(&[]).scale(point).leading
+    }
+}
+
+impl fmt::Debug for LoadedGlyph {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LoadedGlyph")
+            .field("advance_x", &self.advance_width)
+            .finish()
     }
 }
