@@ -95,10 +95,10 @@ fn main(
     let c_t = vec2<f32>(f32(glyph.texture_x) + f32(glyph.height), f32(glyph.texture_y));
     let d_t = vec2<f32>(f32(glyph.texture_x) + f32(glyph.height), f32(glyph.texture_y) + f32(glyph.width));
 
-    let a_i = allocate_vertex();
-    let b_i = allocate_vertex();
-    let c_i = allocate_vertex();
-    let d_i = allocate_vertex();
+    let a_i = 4 * local_id.x;
+    let b_i = 4 * local_id.x + 1;
+    let c_i = 4 * local_id.x + 2;
+    let d_i = 4 * local_id.x + 3;
 
     vertex[a_i].position = a;
     vertex[a_i].texture_position = a_t;
@@ -109,8 +109,8 @@ fn main(
     vertex[d_i].position = d;
     vertex[d_i].texture_position = d_t;
 
-    let first = allocate_triangle_indices();
-    let second = allocate_triangle_indices();
+    let first = local_id.x * 6;
+    let second = local_id.x * 6 + 3;
 
     index[first] = a_i;
     index[first + 1] = c_i;

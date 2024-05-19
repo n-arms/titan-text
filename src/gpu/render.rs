@@ -26,38 +26,6 @@ impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
         atlas_texture: &'a wgpu::Texture,
         num_indices: u32,
     ) -> Self {
-        let visibility = wgpu::ShaderStages::VERTEX;
-        /*
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Render Pass Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(
-                            NonZeroU64::new(size_of::<Vertex>() as u64).unwrap(),
-                        ),
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(
-                            NonZeroU64::new(size_of::<Vertex>() as u64).unwrap(),
-                        ),
-                    },
-                    count: None,
-                },
-            ],
-        });
-        */
         let shader = device.create_shader_module(wgpu::include_wgsl!("shaders/render.wgsl"));
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
@@ -95,7 +63,7 @@ impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
-                cull_mode: Some(wgpu::Face::Back),
+                cull_mode: None,
                 unclipped_depth: false,
                 polygon_mode: wgpu::PolygonMode::Fill,
                 conservative: false,
@@ -135,9 +103,9 @@ impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.5,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,

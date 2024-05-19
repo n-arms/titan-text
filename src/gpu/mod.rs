@@ -41,6 +41,7 @@ pub struct Text {
     lines: u32,
     line_length: u32,
     line_height: f32,
+    pub glyphs: u32,
 }
 
 #[repr(C)]

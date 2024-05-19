@@ -101,6 +101,10 @@ pub fn publish_text(text: &preproc::Text, device: &wgpu::Device, queue: &wgpu::Q
             Some(LineSize { start, length })
         })
         .collect();
+    let glyphs = size_data
+        .last()
+        .map(|size| size.start + size.length)
+        .unwrap_or(0);
 
     let text_data: Vec<u32> = text
         .lines
@@ -128,5 +132,6 @@ pub fn publish_text(text: &preproc::Text, device: &wgpu::Device, queue: &wgpu::Q
         lines: text.lines.len() as u32,
         line_length,
         line_height: text.line_height,
+        glyphs,
     }
 }

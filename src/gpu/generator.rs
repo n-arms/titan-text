@@ -259,6 +259,8 @@ impl GenerationPass {
 
         let index_data: &[IndexData] = bytemuck::cast_slice(&*data);
 
+        dbg_m!(index_data);
+
         index_data[0].indices
     }
 }

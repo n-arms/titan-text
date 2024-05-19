@@ -104,7 +104,7 @@ async fn run() -> Result<()> {
         &generate_pass.vertex_buffer,
         &generate_pass.index_buffer,
         &atlas_texture,
-        generate_pass.get_num_indices(&device, &queue).await,
+        text.glyphs * 6,
     );
 
     render_pass.render(&device, &queue);

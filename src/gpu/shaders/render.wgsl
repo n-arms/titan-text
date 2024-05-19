@@ -9,10 +9,11 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(
+    @builtin(vertex_index) vertex_index: u32,
     vertex: VertexInput
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.position = vec4<f32>(vertex.position.x, vertex.position.y, 0, 1);
+    out.position = vec4<f32>(vertex.position.x / 64, vertex.position.y / 64, 0, 1);
     return out;
 }
 
