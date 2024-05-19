@@ -1,5 +1,6 @@
 use std::mem::size_of;
 
+use image::RgbaImage;
 use wgpu::util::DeviceExt;
 
 use crate::preproc::{self, AtlasView};
@@ -20,7 +21,8 @@ pub fn create_atlas_texture(atlas: AtlasView, device: &wgpu::Device) -> wgpu::Te
         format: wgpu::TextureFormat::Rgba8Unorm,
         usage: wgpu::TextureUsages::COPY_DST
             | wgpu::TextureUsages::STORAGE_BINDING
-            | wgpu::TextureUsages::TEXTURE_BINDING,
+            | wgpu::TextureUsages::TEXTURE_BINDING
+            | wgpu::TextureUsages::COPY_SRC,
         view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
     };
     device.create_texture(&texture_desc)
@@ -43,9 +45,17 @@ pub fn write_atlas_texture(atlas: AtlasView, texture: &wgpu::Texture, queue: &wg
         }
     };
     for glyph in atlas.entries.values() {
+        RgbaImage::from_raw(
+            glyph.glyph.image.placement.width,
+            glyph.glyph.image.placement.height,
+            glyph.glyph.image.data.clone(),
+        )
+        .unwrap()
+        .save(format!("Glyph{}.bmp", glyph.id))
+        .unwrap();
         for (i, color) in glyph.glyph.image.data.chunks_exact(4).enumerate() {
-            let local_x = i as u32 % atlas.width;
-            let local_y = i as u32 / atlas.height;
+            let local_x = i as u32 % glyph.glyph.image.placement.width;
+            let local_y = i as u32 / glyph.glyph.image.placement.width;
 
             let x = glyph.x + local_x;
             let y = glyph.y + local_y;
@@ -53,7 +63,12 @@ pub fn write_atlas_texture(atlas: AtlasView, texture: &wgpu::Texture, queue: &wg
             write_pixel(x, y, color.try_into().unwrap());
         }
     }
+    RgbaImage::from_raw(atlas.width, atlas.height, data.clone())
+        .unwrap()
+        .save("atlas_inter.bmp")
+        .unwrap();
     queue.write_texture(texture.as_image_copy(), &data, data_layout, texture.size());
+    queue.submit([]);
 }
 
 pub fn create_atlas_buffer(atlas: AtlasView, device: &wgpu::Device) -> wgpu::Buffer {

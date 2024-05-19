@@ -1,9 +1,6 @@
-use std::{iter, mem::size_of, num::NonZeroU64};
+use std::{iter, mem::size_of};
 
-use super::{
-    command::{Command, CommandList},
-    Vertex,
-};
+use super::Vertex;
 
 pub struct RenderPass<'a, 'g, 's> {
     pub surface: &'s wgpu::Texture,
@@ -12,6 +9,7 @@ pub struct RenderPass<'a, 'g, 's> {
     pub atlas_texture: &'a wgpu::Texture,
     pub render_pipeline: wgpu::RenderPipeline,
     pub num_indices: u32,
+    pub bind_group: wgpu::BindGroup,
 }
 
 const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 2] =
@@ -26,10 +24,56 @@ impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
         atlas_texture: &'a wgpu::Texture,
         num_indices: u32,
     ) -> Self {
+        let visibility = wgpu::ShaderStages::FRAGMENT;
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Render Pass Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        let atlas_view = atlas_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let atlas_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Render Pass Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&atlas_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&atlas_sampler),
+                },
+            ],
+        });
         let shader = device.create_shader_module(wgpu::include_wgsl!("shaders/render.wgsl"));
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
         let vertex_desc = wgpu::VertexBufferLayout {
@@ -85,6 +129,7 @@ impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
             render_pipeline,
             surface,
             num_indices,
+            bind_group,
         }
     }
     pub fn render(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -117,6 +162,7 @@ impl<'a, 'g, 's> RenderPass<'a, 'g, 's> {
             });
 
             pass.set_pipeline(&self.render_pipeline);
+            pass.set_bind_group(0, &self.bind_group, &[]);
             pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             println!("calculated num indicies to be {}", self.num_indices);
