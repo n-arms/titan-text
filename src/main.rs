@@ -81,48 +81,46 @@ async fn run() -> Result<()> {
     queue.submit([]);
     save_atlas_texture(&atlas_texture, &device, &queue, "atlas.bmp").await;
 
-    /*
-        let layout_pass = LayoutPass::new(&device, &text, &glyph_data_buffer);
-        let generate_pass = GenerationPass::new(
-            &device,
-            &text,
-            &glyph_data_buffer,
-            &layout_pass.layout_buffer,
-        );
+    let layout_pass = LayoutPass::new(&device, &text, &glyph_data_buffer);
+    let generate_pass = GenerationPass::new(
+        &device,
+        &text,
+        &glyph_data_buffer,
+        &layout_pass.layout_buffer,
+    );
 
-        let mut commands = CommandList::default();
-        layout_pass.push_buffers(&device, &mut commands);
-        generate_pass.push_buffers(&device, &mut commands);
-        commands.submit(&queue);
+    let mut commands = CommandList::default();
+    layout_pass.push_buffers(&device, &mut commands);
+    generate_pass.push_buffers(&device, &mut commands);
+    commands.submit(&queue);
 
-        let render_output = make_output_texture(&device);
+    let render_output = make_output_texture(&device);
 
-        dbg!(generate_pass.index_buffer.size());
+    dbg!(generate_pass.index_buffer.size());
 
-        let render_pass = RenderPass::new(
-            &device,
-            &render_output,
-            &generate_pass.vertex_buffer,
-            &generate_pass.index_buffer,
-            &atlas_texture,
-            text.glyphs * 6,
-        );
+    let render_pass = RenderPass::new(
+        &device,
+        &render_output,
+        &generate_pass.vertex_buffer,
+        &generate_pass.index_buffer,
+        &atlas_texture,
+        text.glyphs * 6,
+    );
 
-        render_pass.render(&device, &queue);
+    render_pass.render(&device, &queue);
 
-        save_output_texture(&render_output, &device, &queue, "output.bmp").await;
+    save_output_texture(&render_output, &device, &queue, "output.bmp").await;
 
-        let debug = make_debug_buffer(&device);
-        dbg!(proc.text);
-        dbg_s!(load_buffer_of::<u32>(&text.text, &device, &queue, &debug, 5).await);
-        dbg_m!(load_buffer_of::<LineSize>(&text.size, &device, &queue, &debug, 5).await);
-        dbg_s!(load_buffer_of::<f32>(&layout_pass.layout_buffer, &device, &queue, &debug, 5).await);
-        dbg_m!(load_buffer_of::<GpuGlyphData>(&glyph_data_buffer, &device, &queue, &debug, 5).await);
-        dbg_m!(
-            load_buffer_of::<Vertex>(&generate_pass.vertex_buffer, &device, &queue, &debug, 9).await
-        );
-        dbg_s!(load_buffer_of::<u32>(&generate_pass.index_buffer, &device, &queue, &debug, 15).await);
-    */
+    let debug = make_debug_buffer(&device);
+    dbg!(proc.text);
+    dbg_s!(load_buffer_of::<u32>(&text.text, &device, &queue, &debug, 5).await);
+    dbg_m!(load_buffer_of::<LineSize>(&text.size, &device, &queue, &debug, 5).await);
+    dbg_s!(load_buffer_of::<f32>(&layout_pass.layout_buffer, &device, &queue, &debug, 5).await);
+    dbg_m!(load_buffer_of::<GpuGlyphData>(&glyph_data_buffer, &device, &queue, &debug, 5).await);
+    dbg_m!(
+        load_buffer_of::<Vertex>(&generate_pass.vertex_buffer, &device, &queue, &debug, 9).await
+    );
+    dbg_s!(load_buffer_of::<u32>(&generate_pass.index_buffer, &device, &queue, &debug, 15).await);
     Ok(())
 }
 
@@ -206,7 +204,8 @@ async fn save_atlas_texture(
     queue: &wgpu::Queue,
     file: impl AsRef<Path>,
 ) {
-    let buffer_size = (size_of::<u32>() as u32 * 1024 * 1024) as wgpu::BufferAddress;
+    let buffer_size = (texture.size().width * texture.size().height * 4 * (size_of::<u8>() as u32))
+        as wgpu::BufferAddress;
     let buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Output Buffer"),
         size: buffer_size,
@@ -227,8 +226,8 @@ async fn save_atlas_texture(
             buffer: &buffer,
             layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some((size_of::<u32>() as u32 * 1024) as u32),
-                rows_per_image: Some(1024),
+                bytes_per_row: Some(size_of::<u32>() as u32 * texture.width()),
+                rows_per_image: Some(texture.height()),
             },
         },
         texture.size(),
@@ -244,7 +243,8 @@ async fn save_atlas_texture(
 
         let data = buffer_slice.get_mapped_range();
 
-        let image = RgbaImage::from_raw(SIZE, SIZE, (&*data).to_owned()).unwrap();
+        let image =
+            RgbaImage::from_raw(texture.width(), texture.height(), (&*data).to_owned()).unwrap();
         image.save(file).unwrap();
     }
 }
